@@ -45,25 +45,11 @@ class _PitchDetectorScreenState extends State<PitchDetectorScreen> {
   @override
   void initState() {
     super.initState();
-    // _initializePitchDetector();
     _pitchDetector = PitchDetector();
     _audioRecorder = AudioRecorder();
   }
 
-  // void _initializePitchDetector() {
-  //   // 初始化音高检测器 (44.1kHz 采样率, 1024 帧大小)
-  //   _pitchDetector = PitchDetector();
-  // }
-
-  // 请求麦克风权限
   Future<bool> _requestMicrophonePermission() async {
-
-    try {
-      if (await _audioRecorder.hasPermission()) {
-      }
-   } catch (e) {
-      debugPrint(e.toString());
-    }
     if (await Permission.microphone.request().isGranted) {
       return true;
     }
@@ -85,8 +71,6 @@ class _PitchDetectorScreenState extends State<PitchDetectorScreen> {
       _status = '正在监听...';
     });
 
-    //   _pitchDetector = PitchDetector();
-
     // 模拟音频输入（在实际应用中，这里应该连接到真实的音频流）
     await _simulateAudioInput();
   }
@@ -101,35 +85,35 @@ class _PitchDetectorScreenState extends State<PitchDetectorScreen> {
     });
   }
 
-/// 简化版本：将 Uint8List 流缓冲为指定大小的 Float32List
-Stream<Float32List> bufferStream(
-  Stream<Uint8List> stream, 
-  int bufferSize
-) async* {
-  final List<double> buffer = [];
-  
-  await for (final Uint8List chunk in stream) {
-    // 将 Uint8List 转换为浮点数并添加到缓冲区
-    for (int i = 0; i < chunk.length - 1; i += 2) {
-      // 16-bit PCM 小端序转换
-      final int sample = (chunk[i + 1] << 8) | chunk[i];
-      final int signedSample = (sample > 32767) ? sample - 65536 : sample;
-      final double floatValue = signedSample / 32768.0;
-      buffer.add(floatValue);
-    }
-    
-    // 输出完整的缓冲区
-    while (buffer.length >= bufferSize) {
-      final Float32List floatBuffer = Float32List(bufferSize);
-      for (int i = 0; i < bufferSize; i++) {
-        floatBuffer[i] = buffer[i];
+  Stream<Float32List> bufferStream(
+    Stream<Uint8List> stream,
+    int bufferSize,
+  ) async* {
+    final List<double> buffer = [];
+
+    await for (final Uint8List chunk in stream) {
+      // 将 Uint8List 转换为浮点数并添加到缓冲区
+      for (int i = 0; i < chunk.length - 1; i += 2) {
+        // 16-bit PCM 小端序转换
+        final int sample = (chunk[i + 1] << 8) | chunk[i];
+        final int signedSample = (sample > 32767) ? sample - 65536 : sample;
+        final double floatValue = signedSample / 32768.0;
+        buffer.add(floatValue);
       }
-      
-      yield floatBuffer;
-      buffer.removeRange(0, bufferSize);
+
+      // 输出完整的缓冲区
+      while (buffer.length >= bufferSize) {
+        final Float32List floatBuffer = Float32List(bufferSize);
+        for (int i = 0; i < bufferSize; i++) {
+          floatBuffer[i] = buffer[i];
+        }
+
+        yield floatBuffer;
+        buffer.removeRange(0, bufferSize);
+      }
     }
   }
-}
+
   Future _simulateAudioInput() async {
     if (!_isListening) return;
 
@@ -144,49 +128,13 @@ Stream<Float32List> bufferStream(
 
     var audioSampleBufferedStream = bufferStream(
       recordStream,
-      // recordStream.map((event) {
-      //   return event.toList();
-      // }),
       //The library converts a PCM16 to 8bits internally. So we need twice as many bytes
       PitchDetector.DEFAULT_BUFFER_SIZE * 2,
     );
 
     await for (var audioSample in audioSampleBufferedStream) {
-      // final intBuffer = Float32List.fromList(audioSample);
-
       await _detectPitch(audioSample);
-
-      // var result = await _pitchDetector.getPitchFromIntBuffer(intBuffer);
-
-      // if (result.pitched) {
-      //   //  _pitchupDart.handlePitch(detectedPitch.pitch).then((pitchResult) => {
-
-      //   //   emit(TunningState(
-      //   //     note: pitchResult.note,
-      //   //     status: pitchResult.tuningStatus.getDescription(),
-      //   //   ))
-      //   // });
-      // }
     }
-    // 这里应该使用实际的音频输入
-    // 由于 Flutter Web 的限制，我们模拟一些数据
-    // Future.delayed(const Duration(milliseconds: 100), () async {
-    //   if (_isListening) {
-    //     // 生成模拟的音频数据
-    //     Float32List audioData = Float32List(1024);
-    //     for (int i = 0; i < 1024; i++) {
-    //       // 生成一个 440Hz 的正弦波（A4 音符）
-    //       audioData[i] = 0.5 *
-    //           math.sin(2 * math.pi * 440 * i / 44100);
-    //     }
-
-    //     // 检测音高
-    //    await  _detectPitch(audioData);
-
-    //     // 继续模拟
-    //     _simulateAudioInput();
-    //   }
-    // });
   }
 
   // 检测音高
@@ -197,11 +145,11 @@ Stream<Float32List> bufferStream(
     // _currentNote = _pitchToNote(result.pitch);
 
     // if (pitch != 0.0 && pitch.isFinite) {
-      setState(() {
-        _currentPitch = pitch;
-        _currentNote = _pitchToNote(pitch);
-        _status = '检测到音高';
-      });
+    setState(() {
+      _currentPitch = pitch;
+      _currentNote = _pitchToNote(pitch);
+      _status = '检测到音高';
+    });
     // }
   }
 

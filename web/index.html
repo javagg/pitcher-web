@@ -31,18 +31,6 @@
 
   <title>pitch</title>
   <link rel="manifest" href="manifest.json">
-    <script>
-    // 请求麦克风权限
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        console.log('麦克风权限已获得');
-        // 停止所有轨道以避免持续录音
-        stream.getTracks().forEach(track => track.stop());
-      })
-      .catch(err => {
-        console.error('无法获得麦克风权限:', err);
-      });
-  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
